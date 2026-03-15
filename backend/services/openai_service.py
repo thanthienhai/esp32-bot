@@ -42,3 +42,16 @@ class OpenAIService:
         async for chunk in stream:
             if chunk.choices and chunk.choices[0].delta.content:
                 yield chunk.choices[0].delta.content
+
+    async def tts(self, text: str) -> bytes:
+        """
+        Gửi văn bản tới OpenAI TTS API và nhận dữ liệu âm thanh.
+        Giọng nói mặc định: nova.
+        """
+        response = await self.client.audio.speech.create(
+            model="tts-1",
+            voice="nova",
+            input=text,
+            response_format="mp3"
+        )
+        return await response.read()

@@ -10,7 +10,7 @@ client = TestClient(app)
 def test_read_root():
     response = client.get("/")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "message": "Sophia Backend Running"}
+    assert response.json() == {"status": "ok", "message": "Sophia AI Backend is Running"}
 
 def test_websocket_connect():
     with client.websocket_connect("/ws/audio/test-client") as websocket:

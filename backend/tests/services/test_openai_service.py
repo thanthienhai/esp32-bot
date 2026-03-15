@@ -45,7 +45,7 @@ async def test_tts_success():
     with patch("services.openai_service.AsyncOpenAI") as mock_openai_class:
         mock_client = mock_openai_class.return_value
         mock_response = AsyncMock()
-        mock_response.read = AsyncMock(return_value=b"fake_mp3_data")
+        mock_response.aread = AsyncMock(return_value=b"fake_mp3_data")
         mock_client.audio.speech.create = AsyncMock(return_value=mock_response)
         
         service = OpenAIService(api_key="test-key")

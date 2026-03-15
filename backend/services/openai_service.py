@@ -1,29 +1,35 @@
 import io
+import wave
 from openai import AsyncOpenAI
 
 class OpenAIService:
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, llm_model: str = "gpt-4o-mini", tts_model: str = "tts-1"):
         self.client = AsyncOpenAI(api_key=api_key)
+        self.llm_model = llm_model
+        self.tts_model = tts_model
 
     async def stt(self, audio_bytes: bytes) -> str:
-        """
-        Gửi dữ liệu âm thanh tới OpenAI Whisper API.
-        Dữ liệu được bọc trong BytesIO với tên file 'audio.wav'.
-        """
-        buffer = io.BytesIO(audio_bytes)
-        buffer.name = "audio.wav"
+        wav_io = io.BytesIO()
+        with wave.open(wav_io, 'wb') as wav_file:
+            wav_file.setnchannels(1)
+            wav_file.setsampwidth(2)
+            wav_file.setframerate(16000)
+            wav_file.writeframes(audio_bytes)
         
-        response = await self.client.audio.transcriptions.create(
-            model="whisper-1",
-            file=buffer,
-            language="vi"
-        )
-        return response.text
+        wav_io.seek(0)
+        wav_io.name = "audio.wav"
+        
+        try:
+            response = await self.client.audio.transcriptions.create(
+                model="whisper-1",
+                file=wav_io,
+                language="vi"
+            )
+            return response.text
+        except Exception as e:
+            raise e
 
     async def llm_stream(self, text: str, history: list = None):
-        """
-        Gửi văn bản tới OpenAI LLM và nhận luồng phản hồi (streaming).
-        """
         if history is None:
             history = []
         
@@ -34,7 +40,7 @@ class OpenAIService:
         ]
         
         stream = await self.client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=self.llm_model,
             messages=messages,
             stream=True
         )
@@ -46,12 +52,14 @@ class OpenAIService:
     async def tts(self, text: str) -> bytes:
         """
         Gửi văn bản tới OpenAI TTS API và nhận dữ liệu âm thanh.
-        Giọng nói mặc định: nova.
         """
         response = await self.client.audio.speech.create(
-            model="tts-1",
+            model=self.tts_model,
             voice="nova",
             input=text,
             response_format="mp3"
         )
-        return await response.read()
+        # Sửa lỗi: read() của response trong AsyncOpenAI KHÔNG cần await (nó trả về bytes ngay)
+        # Hoặc chính xác hơn trong bản mới: await response.aread() nếu dùng content
+        # Cách an toàn nhất là gọi .content trực tiếp (thuộc tính) hoặc .aread() (phương thức async)
+        return await response.aread()

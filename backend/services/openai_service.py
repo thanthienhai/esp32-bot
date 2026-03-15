@@ -19,3 +19,26 @@ class OpenAIService:
             language="vi"
         )
         return response.text
+
+    async def llm_stream(self, text: str, history: list = None):
+        """
+        Gửi văn bản tới OpenAI LLM và nhận luồng phản hồi (streaming).
+        """
+        if history is None:
+            history = []
+        
+        messages = [
+            {"role": "system", "content": "Bạn là Sophia, một robot trợ lý thông minh người Việt Nam. Hãy trả lời ngắn gọn, lễ phép, thân thiện và luôn dùng Tiếng Việt."},
+            *history,
+            {"role": "user", "content": text}
+        ]
+        
+        stream = await self.client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            stream=True
+        )
+        
+        async for chunk in stream:
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
